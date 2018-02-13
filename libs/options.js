@@ -2,7 +2,7 @@ var net = require('net');
 var cidr = require('./cidr');
 var dns = require('dns');
 var async = require('async');
-var findup = require('findup-sync');
+var path = require('path');
 
 var getTargets = function(target,cb) {
 
@@ -202,187 +202,30 @@ var defaultValues = function(argv) {
     return argv;
 };
 
-var help = function(optimist,argv) {
-    if (argv.help) {
-        optimist.showHelp();
-        process.exit(0);
-    }
-
-    if (argv.version||argv.about) {
-        var fs = require('fs');
-        var package = JSON.parse(fs.readFileSync(findup('package.json')));
-    }
-
-    if (argv.version) {
-        console.log(package.version);
-        process.exit(0);
-    }
-
-    if (argv.about) {
-        console.log(
-            package.name,
-            package.version,'\n',
-            'Resume: '+package.description,'\n',
-            'License: '+package.license,'\n',
-            'Author: '+package.author,'\n',
-            'Repository: '+package.repository.url.replace(/git/,'http')
-        );
-        process.exit(0);
-    }
-    return argv;
-};
-
-var takeCareOfCrazyPeople = function(argv,cb) {
-    var count = argv.ips.length * argv.ports.length;
-    if (count>16580355) {
-        var msg = 'limit of 16580355 numbers of ip/port combinaison reached ('+count+')';
-        msg+=', see https://github.com/eviltik/evilscan/issues/25 for more information';
-        cb(msg);
-        return false;
-    }
-    return true;
-};
 
 var parse = function(args,cb) {
-
-    var optimist = require('optimist')
-        .usage('Usage: evilscan <fqdn|ipv4|cidr> [options]\n\nExample: evilscan 192.168.0.0/24 --port=21-23,80')
-        .demand('_')
-
-        .describe(
-            'port',
-            'port(s) you want to scan, examples:\n'+
-            '--port=80\n'+
-            '--port=21,22\n'+
-            '--port=21,22,23,5900-5900\n'
-        )
-        .describe(
-            'reverse',
-            'display DNS reverse lookup'
-        )
-        .describe(
-            'reversevalid',
-            'only display results having a valid reverse dns, except if ports specified'
-        )
-        .describe(
-            'geo',
-            'display geoip (free maxmind)'
-        )
-        .describe(
-            'banner',
-            'display grabbed banner when available'
-        )
-        .describe(
-            'bannerraw',
-            'display raw banner (as a JSON Buffer)'
-        )
-        .describe(
-            'bannerlen',
-            'grabbed banner length in bytes\n'+
-            'default 512'
-        )
-        .describe(
-            'progress',
-            'display progress indicator each seconds\n'
-        )
-        .describe(
-            'status',
-            'ports status wanted in results (example --status=OT)\n'+
-            'T(timeout)\n'+
-            'R(refused)\n'+
-            'O(open, default)\n'+
-            'U(unreachable)\n'
-        )
-        .describe(
-            'scan',
-            'scan method\n'+
-            'tcpconnect (full connect, default)\n'+
-            'tcpsyn (half opened, not yet implemented)\n'+
-            'udp (not yet implemented)\n'
-        )
-        .describe(
-            'concurrency',
-            'max number of simultaneous socket opened\n'+
-            'default 500\n'
-        )
-        .describe(
-            'timeout',
-            'maximum number of milliseconds before closing the connection\n'+
-            'default 2000\n'
-        )
-        .describe(
-            'hugescan',
-            'allow number of ip/port combinaison greater than 16580355\n'+
-            '(i.e a /24 network with port range 0-65535)'
-        )
-        .describe(
-            'display',
-            'display result format (json,xml,console)\n'+
-            'default console\n'
-        )
-        .describe(
-            'json',
-            'shortcut for --display=json'
-        )
-        .describe(
-            'xml',
-            'shortcut for --display=xml'
-        )
-        .describe(
-            'console',
-            'shortcut for --display=console'
-        )
-        .describe(
-            'help',
-            'display help'
-        )
-        .describe(
-            'about',
-            'display about'
-        )
-        .describe(
-            'version',
-            'display version number'
-        )
-        .wrap(80);
-
-    var argv = optimist.parse(args);
-
-    // merge options when used in a node module
-    // because we are passing options without "--"
-    // like when using evilscan with the command line
-    for (var attr in args) {
-        argv[attr] = args[attr];
-    }
-
-    // we don't care about that
-    delete argv['$0'];
-
-    argv = help(optimist,argv);
-    argv = defaultValues(argv);
+    args = defaultValues(args);
 
     async.series([
         function(next) {
-            getTargets(argv._[2]||args.target,next);
+            getTargets(args.target,next);
         },
         function(next) {
-            getPorts(argv.port||args.port,next);
+            getPorts(args.port,next);
         }
     ],function(err,result) {
 
         if (err) return cb(err);
 
-        argv.ips = result[0];
-        argv.ports = result[1];
+        args.ips = result[0];
+        args.ports = result[1];
 
-        if (!argv.port && !argv.reverse && !argv.geo) {
+        if (!args.port && !args.reverse && !args.geo) {
             var msg = 'Please specify at least one port, --port=80';
             return cb(msg);
         }
 
-        takeCareOfCrazyPeople(argv,cb);
-
-        cb(null,argv);
+        cb(null,args);
     });
 };
 

@@ -41,7 +41,6 @@ suite(path.basename(__filename), function() {
             reverse:true
         },
         result:{
-            "_":[],
             "target":"127.0.0.1/29",
             "port":'21-23,80',
             "status":"TROU",

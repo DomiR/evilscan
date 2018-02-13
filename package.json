@@ -6,9 +6,6 @@
   "scripts": {
     "test": "make test"
   },
-  "bin": {
-    "evilscan": "./bin/evilscan.js"
-  },
   "repository": {
     "type": "git",
     "url": "git://github.com/eviltik/evilscan"
@@ -29,17 +26,10 @@
   },
   "dependencies": {
     "async": "2.6.0",
-    "findup-sync": "2.0.0",
-    "geoip-lite": "1.2.1",
-    "optimist": "0.5.0",
-    "printf": "0.2.5",
-    "qjobs": "1.1.5",
-    "winston": "2.4.0",
-    "yargs": "^10.0.3"
+    "qjobs": "1.1.5"
   },
   "devDependencies": {
     "chai": "latest",
-    "mocha": "latest",
-    "sol-telnet": "latest"
+    "mocha": "latest"
   }
 }

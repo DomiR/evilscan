@@ -5,7 +5,6 @@ var options = require('./libs/options');
 
 var dns = require('dns');
 var async = require('async');
-var geoip = require('geoip-lite');
 
 
 var evilscan = function(opts,cb) {
@@ -196,20 +195,6 @@ evilscan.prototype.init = function() {
     //portscan.setSocketTimeout(argv.timeout||1000);
 };
 
-evilscan.prototype.lookupGeo = function(ip,cb) {
-
-    if (!this.options.geo) {
-        return cb();
-    }
-
-    if (this.cacheGeo[ip]) {
-        return cb(null,this.cacheGeo[ip]);
-    }
-
-    var geo = geoip.lookup(ip);
-    cb(null, geo);
-};
-
 evilscan.prototype.lookupDns = function(ip,cb) {
     var self = this;
     if (!this.options.reverse) return cb();
@@ -251,28 +236,6 @@ evilscan.prototype.portScan = function(ip,port,cb) {
 
     var t = new tcpconnect(args);
     t.analyzePort(cb);
-};
-
-evilscan.prototype.resultAddGeo = function(result,r) {
-    if (!this.options.geo) return r;
-
-    r.city = '';
-    r.country = '';
-    r.region = '';
-    r.latitude = '';
-    r.longitude = '';
-
-    if (!result) return r;
-
-    this.cacheGeo[r.ip] = result;
-
-    r.city = result.city || '';
-    r.country = result.country || '';
-    r.region = result.region || '';
-    r.latitude = result.ll[0] || '';
-    r.longitude = result.ll[1] || '';
-
-    return r;
 };
 
 evilscan.prototype.resultAddDns = function(result,r) {
@@ -365,16 +328,12 @@ evilscan.prototype.scan = function(args,nextIteration) {
 
     async.series([
         function(next) {
-            self.lookupGeo(args.ip,next);
-        },
-        function(next) {
             self.lookupDns(args.ip,next);
         },
         function(next) {
             self.portScan(args.ip,args.port,next);
         }
     ],function(err,arr) {
-        result = self.resultAddGeo(arr[0],result);
         result = self.resultAddDns(arr[1],result);
         result = self.resultAddPort(arr[2],result);
         result = self.resultClean(result);
